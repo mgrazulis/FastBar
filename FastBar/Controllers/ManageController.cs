@@ -60,6 +60,7 @@ namespace FastBar.Controllers
 
             var currentUser = manager.FindById(User.Identity.GetUserId());
 
+            //Get Users FullName from UserManager
             EditProfileViewModel editProfileViewModel = new EditProfileViewModel();
             editProfileViewModel.FirstName = currentUser.FirstName;
             editProfileViewModel.LastName = currentUser.LastName;
@@ -72,13 +73,12 @@ namespace FastBar.Controllers
         public ActionResult EditProfile(EditProfileViewModel editProfileViewModel)
         {
 
-
             var currentUserId = User.Identity.GetUserId();
 
             var manager = new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(new ApplicationDbContext()));
 
+            //Get Users FullName and StripeId from UserManager
             var currentUser = manager.FindById(User.Identity.GetUserId());
-
             currentUser.FirstName = editProfileViewModel.FirstName;
             currentUser.LastName = editProfileViewModel.LastName;
             
@@ -87,6 +87,7 @@ namespace FastBar.Controllers
 
             StripeCustomer currentStripeCustomer;
 
+            //Attempt to find user on Stripe by using StripeId stored in UserManager.
             try
             {
                 currentStripeCustomer = customerService.Get(currentUser.StripeId);
@@ -101,6 +102,7 @@ namespace FastBar.Controllers
 
                 StripeCustomer stripeCustomer;
 
+                //If the user was not found on Stripe then create it, if it was found then update it with the new Credit Card info.
                 if (currentStripeCustomer == null)
                 {
                     var stripeCustomerCreate = new StripeCustomerCreateOptions();
@@ -143,6 +145,8 @@ namespace FastBar.Controllers
             }
             catch (StripeException ex)
             {
+
+                //Handle errors based on the Error Codes that Stripe supplies. The idea is not to bubble up third party error messages to our customers.
                 string errorMessage;
                 switch (ex.StripeError.Code)
                 {
@@ -172,11 +176,11 @@ namespace FastBar.Controllers
                         break;
 
                 }
-                //editProfileViewModel.Error = errorMessage;
                 ModelState.AddModelError(string.Empty, errorMessage);
                 editProfileViewModel.Success = false;
             }
 
+            //Clearing the ModelState to remove all the customer sencitive info ASAP.
             ModelState.Clear();
 
             editProfileViewModel.CCNumber = null;
