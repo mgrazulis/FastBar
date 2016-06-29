@@ -36,8 +36,8 @@ namespace FastBar.Models
 
         [Required]
         [RegularExpression(@"^[0-9]{3,3}$", ErrorMessage = "Only numbers are allowed")]
-        [Display(Name = "CVC")]
-        public string CVC { get; set; }
+        [Display(Name = "CVV")]
+        public string CVV { get; set; }
 
         public bool Success { get; set; }
 

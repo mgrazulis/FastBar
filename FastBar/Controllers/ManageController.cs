@@ -114,7 +114,7 @@ namespace FastBar.Controllers
                         Number = editProfileViewModel.CCNumber,
                         ExpirationYear = editProfileViewModel.ExpirationYear,
                         ExpirationMonth = editProfileViewModel.ExpirationMonth,
-                        Cvc = editProfileViewModel.CVC
+                        Cvc = editProfileViewModel.CVV
                         
                     };
                     stripeCustomer = customerService.Create(stripeCustomerCreate);
@@ -179,8 +179,8 @@ namespace FastBar.Controllers
 
             ModelState.Clear();
 
-            editProfileViewModel.CCNumber = "";
-            editProfileViewModel.CVC = null;
+            editProfileViewModel.CCNumber = null;
+            editProfileViewModel.CVV = null;
             editProfileViewModel.ExpirationMonth = null;
             editProfileViewModel.ExpirationYear = null;
 

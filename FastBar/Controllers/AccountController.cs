@@ -121,14 +121,6 @@ namespace FastBar.Controllers
                     // var callbackUrl = Url.Action("ConfirmEmail", "Account", new { userId = user.Id, code = code }, protocol: Request.Url.Scheme);
                     // await UserManager.SendEmailAsync(user.Id, "Confirm your account", "Please confirm your account by clicking <a href=\"" + callbackUrl + "\">here</a>");
 
-                    //CustomerProfile customerProfile = new CustomerProfile();
-                    //customerProfile.FirstName = model.FirstName;
-                    //customerProfile.LastName = model.LastName;
-
-                    //db.Entry(customerProfile).State = EntityState.Modified;
-                    //db.CustomerProfiles.Add(customerProfile);
-                    //db.SaveChanges();
-
                     return RedirectToAction("EditProfile", "Manage");
                 }
                 AddErrors(result);
