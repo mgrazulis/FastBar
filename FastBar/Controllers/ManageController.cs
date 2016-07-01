@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Mvc;
+using FastBar.Domain;
 using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Identity.Owin;
 using Microsoft.Owin.Security;
@@ -72,113 +73,33 @@ namespace FastBar.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult EditProfile(EditProfileViewModel editProfileViewModel)
         {
-
-            var currentUserId = User.Identity.GetUserId();
-
             var manager = new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(new ApplicationDbContext()));
 
             //Get Users FullName and StripeId from UserManager
             var currentUser = manager.FindById(User.Identity.GetUserId());
             currentUser.FirstName = editProfileViewModel.FirstName;
             currentUser.LastName = editProfileViewModel.LastName;
-            
+
+
+            StripeCCAccount stripeAccount = new StripeCCAccount()
+            {
+                FirstName = editProfileViewModel.FirstName,
+                LastName = editProfileViewModel.LastName,
+                Email = currentUser.Email,
+                StripeId = currentUser.StripeId,
+                CCNumber = editProfileViewModel.CCNumber,
+                ExpirationMonth = editProfileViewModel.ExpirationMonth,
+                ExpirationYear = editProfileViewModel.ExpirationYear,
+                CVV = editProfileViewModel.CVV
+            };
 
             var customerService = new StripeCustomerService();
 
-            StripeCustomer currentStripeCustomer;
+            StripeCCAccount responseStripeAccount = CCAccount.SaveStripeCustomer(customerService, stripeAccount);
 
-            //Attempt to find user on Stripe by using StripeId stored in UserManager.
-            try
-            {
-                currentStripeCustomer = customerService.Get(currentUser.StripeId);
-            }
-            catch
-            {
-                currentStripeCustomer = null;
-            }
+            currentUser.StripeId = responseStripeAccount.StripeId;
 
-            try
-            {
-
-                StripeCustomer stripeCustomer;
-
-                //If the user was not found on Stripe then create it, if it was found then update it with the new Credit Card info.
-                if (currentStripeCustomer == null)
-                {
-                    var stripeCustomerCreate = new StripeCustomerCreateOptions();
-                    stripeCustomerCreate.Email = currentUser.Email;
-                    stripeCustomerCreate.Description = currentUser.FirstName + " " + currentUser.LastName + " (" +
-                                                       currentUser.Email + ")";
-
-                    // setting up the card
-                    stripeCustomerCreate.SourceCard = new SourceCard()
-                    {
-                        Number = editProfileViewModel.CCNumber,
-                        ExpirationYear = editProfileViewModel.ExpirationYear,
-                        ExpirationMonth = editProfileViewModel.ExpirationMonth,
-                        Cvc = editProfileViewModel.CVV
-                        
-                    };
-                    stripeCustomer = customerService.Create(stripeCustomerCreate);
-                    currentUser.StripeId = stripeCustomer.Id;
-                }
-                else
-                {
-                    var stripeCustomerUpdate = new StripeCustomerUpdateOptions();
-                    stripeCustomerUpdate.Email = currentUser.Email;
-                    stripeCustomerUpdate.Description = currentUser.FirstName + " " + currentUser.LastName + " (" +
-                                                       currentUser.Email + ")";
-
-                    // setting up the card
-                    stripeCustomerUpdate.SourceCard = new SourceCard()
-                    {
-                        Number = editProfileViewModel.CCNumber,
-                        ExpirationYear = editProfileViewModel.ExpirationYear,
-                        ExpirationMonth = editProfileViewModel.ExpirationMonth
-                    };
-
-                    stripeCustomer = customerService.Update(currentUser.StripeId, stripeCustomerUpdate);
-                }
-                manager.Update(currentUser);
-
-                editProfileViewModel.Success = true;
-            }
-            catch (StripeException ex)
-            {
-
-                //Handle errors based on the Error Codes that Stripe supplies. The idea is not to bubble up third party error messages to our customers.
-                string errorMessage;
-                switch (ex.StripeError.Code)
-                {
-                    case "invalid_number":
-                        errorMessage = "The Credit Card Number is invalid.";
-                        break;
-                    case "invalid_expiry_month":
-                        errorMessage = "The Expiry Month is invalid.";
-                        break;
-                    case "invalid_expiry_year":
-                        errorMessage = "The Expiry Year is invalid.";
-                        break;
-                    case "expired_card":
-                        errorMessage = "The Credit Card is expired.";
-                        break;
-                    case "incorrect_number":
-                        errorMessage = "The Credit Card number is incorrect.";
-                        break;
-                    case "incorrect_cvc":
-                        errorMessage = "Incorect CVC.";
-                        break;
-                    case "incorrect_zip":
-                        errorMessage = "Incorect Zip Code.";
-                        break;
-                    default:
-                        errorMessage = "Error occured while saving the payment information.";
-                        break;
-
-                }
-                ModelState.AddModelError(string.Empty, errorMessage);
-                editProfileViewModel.Success = false;
-            }
+            manager.Update(currentUser);
 
             //Clearing the ModelState to remove all the customer sencitive info ASAP.
             ModelState.Clear();
