@@ -12,17 +12,7 @@ namespace FastBar.Domain
     {
         static public StripeCCAccount SaveStripeCustomer(StripeCustomerService stripeCustomerService, StripeCCAccount account)
         {
-            StripeCustomer currentStripeCustomer;
-
-            //Attempt to find user on Stripe by using StripeId stored in UserManager.
-            try
-            {
-                currentStripeCustomer = stripeCustomerService.Get(account.StripeId);
-            }
-            catch
-            {
-                currentStripeCustomer = null;
-            }
+            StripeCustomer currentStripeCustomer = null;
 
             StripeCCAccount responseAccount = new StripeCCAccount()
             {
@@ -33,11 +23,26 @@ namespace FastBar.Domain
             try
             {
 
-                StripeCustomer stripeCustomer;
+                StripeCustomer stripeCustomer = null;
+
+
+                if (account.StripeId != null)
+                {
+                    try
+                    {
+                        currentStripeCustomer = stripeCustomerService.Get(account.StripeId);
+                    }
+                    catch
+                    {
+                        responseAccount.Success = false;
+                        responseAccount.ErrorMessage = "Stripe failed to locate the account.";
+                        return responseAccount;
+                    }
+                }
 
 
                 //If the user was not found on Stripe then create it, if it was found then update it with the new Credit Card info.
-                if (currentStripeCustomer == null)
+                if (account.StripeId == null)
                 {
                     var stripeCustomerCreate = new StripeCustomerCreateOptions();
                     stripeCustomerCreate.Email = account.Email;
@@ -56,7 +61,7 @@ namespace FastBar.Domain
                     stripeCustomer = stripeCustomerService.Create(stripeCustomerCreate);
                     //account.StripeId = stripeCustomer.Id;
                 }
-                else
+                else if (account.StripeId != null && currentStripeCustomer != null)
                 {
                     var stripeCustomerUpdate = new StripeCustomerUpdateOptions();
                     stripeCustomerUpdate.Email = account.Email;
@@ -72,6 +77,12 @@ namespace FastBar.Domain
                     };
 
                     stripeCustomer = stripeCustomerService.Update(account.StripeId, stripeCustomerUpdate);
+                }
+                else if (account.StripeId != null && currentStripeCustomer == null)
+                {
+                    responseAccount.Success = false;
+                    responseAccount.ErrorMessage = "Stripe failed to locate the account.";
+                    return responseAccount;
                 }
 
                 if (stripeCustomer != null)

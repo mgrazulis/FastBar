@@ -47,7 +47,7 @@ namespace FastBar.Domain.Tests
         }
 
         [TestMethod]
-        public void TestSaveStripeCustomer_CreateStripeAccount()
+        public void TestSaveStripeCustomer_UpdateStripeAccount_FailedToLocate()
         {
             //Arrange
             StripeCCAccount stripeAccount = new StripeCCAccount()
@@ -67,6 +67,42 @@ namespace FastBar.Domain.Tests
 
             customerService.Setup(m => m.Get(It.IsAny<string>(), It.IsAny<StripeRequestOptions>()))
                 .Throws<StripeException>();
+
+            customerService.Setup(m => m.Update(It.IsAny<string>(), It.IsAny<StripeCustomerUpdateOptions>(), It.IsAny<StripeRequestOptions>())).Returns(new StripeCustomer()
+            {
+                //Email = "stripeUpdateCustomer@mailinator.com",
+                Id = "StripeUpdateId"
+            });
+
+            //Act
+            StripeCCAccount responseStripeAccount = CCAccount.SaveStripeCustomer(customerService.Object, stripeAccount);
+
+
+            //Assert
+            Assert.AreEqual("Stripe failed to locate the account.", responseStripeAccount.ErrorMessage, "Error message does not match.");
+        }
+
+        [TestMethod]
+        public void TestSaveStripeCustomer_CreateStripeAccount()
+        {
+            //Arrange
+            StripeCCAccount stripeAccount = new StripeCCAccount()
+            {
+                FirstName = "FirstName",
+                LastName = "LastName",
+                Email = "email1234@mailinator.com",
+                StripeId = "strp_asdf!@#$",
+                CCNumber = "4242424242424242",
+                ExpirationMonth = "11",
+                ExpirationYear = "2020",
+                CVV = "123"
+            };
+
+
+            var customerService = new Moq.Mock<StripeCustomerService>("test");
+
+            //customerService.Setup(m => m.Get(It.IsAny<string>(), It.IsAny<StripeRequestOptions>()))
+            //    .Throws<StripeException>();
 
 
 
